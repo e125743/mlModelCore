@@ -5,3 +5,5 @@ annotations/
 **/*.jpg
 *.zip
 *.json
+*.ipynb
+dockerTest.py
