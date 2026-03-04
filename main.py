@@ -9,77 +9,93 @@ import json
 from flask import Flask, request
 
 app = Flask(__name__)
+model = YOLO('yolov8n.pt')
+colors = Colors()  # 公式パレット
 
 @app.route("/", methods=["POST"])
-def handle_event(request):
-    down_fol = 'origineImages'
-    up_fol = 'detectedImages'
-    
-    event = request.get_json()
-    bucket_name = event["data"]["bucket"]
-    file_name = event["data"]["name"].split('/')[-1]
-    if file_name.startsWith(down_fol) != True:
-        return ("ignored prefix", 200)
-    
-    for fol_ in [down_fol, up_fol]:
-        if os.path.exists(f'./{fol_}'):
-            shutil.rmtree(f'./{fol_}')
-        os.mkdir(f'./{fol_}')
-    
-    if not firebase_admin._apps:
-        # cred = credentials.Certificate(glob('./seacrets/*-firebase-adminsdk-*.json')[0])
-        firebase_admin.initialize_app(#cred, 
-            options={"storageBucket": bucket_name}
-        )
-    bucket = storage.bucket()
-    
-    model = YOLO('yolov8n.pt')
-    
-    blob = bucket.blob(f'{down_fol}/{file_name}')
-    blob.download_to_filename(f'./{down_fol}/{file_name}')
-    
-    results = model(f'./{down_fol}/{file_name}',save=True)
-    results[0].save(f'./{up_fol}/{file_name}')
-    
-    labelColors = {}
-    colors = Colors()  # 公式パレット
-    for box in results[0].boxes:
-        class_id = int(box.cls.item())
-        cla_name = model.names[class_id]
-        color = colors(class_id)  # ← これが描画に使われる色
-        print("class:", class_id,',', cla_name, "RGB:", color)
-        r,g,b = color
-        labelColor = "#{:02x}{:02x}{:02x}".format(r,g,b)
-        print(labelColor)
-        labelColors[cla_name] = labelColor
-        # labels.append(cla_name)
-        # labelColors.append(labelColor)
-    print(labelColors)
-    
-    with open("ATfCyM3WVHe8UhaFwkyN.json", "w", encoding="utf-8") as f:
-        json.dump(labelColors, f, ensure_ascii=False, indent=4)
-    
-    
-    out_blob = bucket.blob(f'{up_fol}/{file_name}')
-    out_blob.upload_from_filename(f'./{up_fol}/{file_name}')
-    
-    file_ = file_name.split('.')[0]
-    outJson_blob = bucket.blob(f'{up_fol}/{file_}.json')
-    outJson_blob.upload_from_filename(f'./{file_}.json')
+def handle_event():
+    try:
+        down_fol = 'origineImages'
+        up_fol = 'detectedImages'
 
-    # ゴミデータの削除
-    for fol_ in [down_fol, up_fol]:
-        if os.path.exists(f'./{fol_}'):
-            shutil.rmtree(f'./{fol_}')
-        os.mkdir(f'./{fol_}')
+        print("HEADERS:", dict(request.headers))
+        print("BODY:", request.data)
+        print("JSON:", request.get_json(silent=True))
         
-    if os.path.exists(f'./{file_}.json'):
-        os.remove(f'./{file_}.json')
+        event = request.get_json()
+        if event is None:
+            return ("no event", 200)
 
-    return ("OK", 200)
+        data = event.get('data', event)
+        bucket_name = data.get("bucket")
+        full_path = data.get("name")
+        if not bucket_name or not full_path:
+            return ("invalid event", 200)
+        if full_path.startswith(down_fol) != True:
+            return ("ignored prefix", 200)
+        file_name = full_path.split('/')[-1]
+        
+        for fol_ in [down_fol, up_fol]:
+            if os.path.exists(f'./{fol_}'):
+                shutil.rmtree(f'./{fol_}')
+            os.mkdir(f'./{fol_}')
+        
+        if not firebase_admin._apps:
+            cred_dict = json.loads(os.environ["FIREBASE_KEY"])
+            cred = credentials.Certificate(cred_dict)
+            # cred = credentials.Certificate(glob('./seacrets/*-firebase-adminsdk-*.json')[0])
+            firebase_admin.initialize_app(cred, {
+                 "storageBucket": bucket_name
+            })
+        bucket = storage.bucket()
+        
+        blob = bucket.blob(f'{down_fol}/{file_name}')
+        blob.download_to_filename(f'./{down_fol}/{file_name}')
+        
+        results = model(f'./{down_fol}/{file_name}',save=True)
+        results[0].save(f'./{up_fol}/{file_name}')
+        
+        labelColors = {}
+        for box in results[0].boxes:
+            class_id = int(box.cls.item())
+            cla_name = model.names[class_id]
+            color = colors(class_id)  # ← これが描画に使われる色
+            print("class:", class_id,',', cla_name, "RGB:", color)
+            r,g,b = color
+            labelColor = "#{:02x}{:02x}{:02x}".format(r,g,b)
+            print(labelColor)
+            labelColors[cla_name] = labelColor
+            # labels.append(cla_name)
+            # labelColors.append(labelColor)
+        print(labelColors)
+        
+        file_ = file_name.split('.')[0]
+        with open(f'./{file_}.json', "w", encoding="utf-8") as f:
+            json.dump(labelColors, f, ensure_ascii=False, indent=4)
+        
+        
+        out_blob = bucket.blob(f'{up_fol}/{file_name}')
+        out_blob.upload_from_filename(f'./{up_fol}/{file_name}')
+        
+        outJson_blob = bucket.blob(f'{up_fol}/{file_}.json')
+        outJson_blob.upload_from_filename(f'./{file_}.json')
+    
+        # ゴミデータの削除
+        for fol_ in [down_fol, up_fol]:
+            if os.path.exists(f'./{fol_}'):
+                shutil.rmtree(f'./{fol_}')
+            os.mkdir(f'./{fol_}')
+            
+        if os.path.exists(f'./{file_}.json'):
+            os.remove(f'./{file_}.json')
+    
+        return ("OK", 200)
+    except Exception as e:
+        print("ERROR:", e)
+        return (str(e), 500)
     
 
-# ローカルでデバックする時の起動コード
-# if __name__ == "__main__":
-#     # Local dev only — Cloud Run 上では不要
-#     app.run(host="0.0.0.0", port=8080)
+if __name__ == "__main__":
+    # Local dev only — Cloud Run 上では不要
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)

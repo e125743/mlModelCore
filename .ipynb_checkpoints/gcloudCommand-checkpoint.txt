@@ -1,0 +1,87 @@
+0.プロジェクトID、NUMBERを確認ーーーーーーーーーー
+gcloud projects list
+
+
+1.レポジトリを作成ーーーーーーーーーーーーーーーーーー
+Dockerfileがあるプロジェクトフォルダ$ gcloud services enable cloudbuild.googleapis.com
+Dockerfileがあるプロジェクトフォルダ$ gcloud services enable artifactregistry.googleapis.com
+Dockerfileがあるプロジェクトフォルダ$ gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+Dockerfileがあるプロジェクトフォルダ$ gcloud artifacts repositories create レポジトリ名\
+  --repository-format=docker\
+  --location=asia-northeast1
+
+
+2.レポジトリにdockerイメージ（Dockerfileに依存）を作成ーーーーーーー
+Dockerfileがあるプロジェクトフォルダ$ gcloud builds submit\
+  --tag asia-northeast1-docker.pkg.dev/PROJECT_ID/レポジトリ名/dockerImageの名前
+
+
+3.SeacretManagerに認証キーを作成ーーーーーーーーーーーーーーーー
+gcloud secrets create キーの名前\
+  --data-file=キーファイル（.json）へのローカルパス\
+  --project=PROJECT_ID
+
+
+4.cloudRunのサービス専用のサービスアカウントを作成ーーーーーーーーーーーーー
+gcloud iam service-accounts create サービスアカウント名\
+  --display-name="Cloud Run Secret Service Account"
+
+
+5.cloudRunにSeacretManagerやStorageを読み書き権限を設定（権限毎にコマンド実行）ーーーーーーー
+$ gcloud auth login
+$ gcloud config set account YOUR_GMAIL
+$ gcloud projects add-iam-policy-binding PROJECT_ID\
+  --member="serviceAccount:サービスアカウント名@PROJECT_ID.iam.gserviceaccount.com"\
+  --role="roles/secretmanager.secretAccessor"
+$ gcloud projects add-iam-policy-binding PROJECT_ID\
+  --member="serviceAccount:サービスアカウント名@PROJECT_ID.iam.gserviceaccount.com"\
+  --role="roles/storage.objectAdmin"
+$ gcloud projects add-iam-policy-binding PROJECT_ID\
+  --member="serviceAccount:サービスアカウント名@PROJECT_ID.iam.gserviceaccount.com"\
+  --role="roles/artifactregistry.reader"
+
+
+6.レポジトリにあげたdockerイメージからcloudRunのサービスを作成ーーーー
+＊FIREBASE_KEYは、initialize_app(cred_key)に読み込ませるために作った環境変数（main.pyで使用）
+＊--platform managedは、インスタンスをcloudRunに完全に管理させるフラグ
+gcloud run deploy サービス名\
+  --image asia-northeast1-docker.pkg.dev/PROJECT_ID/レポジトリ名/dockerImageの名前\
+  --region asia-northeast1\
+  --service-account サービスアカウント名@PROJECT_ID.iam.gserviceaccount.com\
+  --memory 4Gi \
+  --timeout 900 \
+  --allow-unauthenticated\
+  --platform managed\
+  --update-secrets=FIREBASE_KEY=キーの名前:latest
+
+
+7.cloudRunのサービスの動作確認ーーーーーーーーーーーーー
+gcloud run services describe サービス名\
+  --platform managed\
+  --region asia-northeast1\
+  --format "value(status.url)"
+
+
+8.Eventarcにイベント（Storageにファイルが追加されたらcloudRunのサービス起動）を作成ーーーーーー
+$ gcloud services enable eventarc.googleapis.com
+$ gcloud services enable run.googleapis.com
+$ gcloud services enable storage.googleapis.com
+$ gcloud projects add-iam-policy-binding PROJECT_ID\
+  --member="serviceAccount:service-PROJECT_NUMBER@gs-project-accounts.iam.gserviceaccount.com"\
+  --role="roles/pubsub.publisher"
+$ gsutil iam ch \
+  serviceAccount:service-PROJECT_NUMBER@gcp-sa-eventarc.iam.gserviceaccount.com:roles/storage.objectViewer \
+  gs://your-input-bucket
+$ gcloud eventarc triggers create イベント名\
+  --location=Eventarcイベントのリージョン（bucketと同じにする）\
+  --destination-run-service=起動するcloudRunのサービス名\
+  --destination-run-region=起動するcloudRunのサービスがあるリージョン\
+  --service-account=PROJECT_NUMBER-compute@developer.gserviceaccount.com\
+  --destination-run-path="POSTを送るcloudRunのルートパス"\
+  --event-filters="type=google.cloud.storage.object.v1.finalized"\
+  --event-filters="bucket=your-input-bucket"
+
+
+9.Eventarcイベント削除ーーーーーーーーーーーーーーー
+$ gcloud eventarc triggers delete イベント名 \
+--location=Eventarcイベントのリージョン

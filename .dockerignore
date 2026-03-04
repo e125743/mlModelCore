@@ -7,3 +7,4 @@ annotations/
 *.json
 *.ipynb
 dockerTest.py
+gcloudCommand.txt
