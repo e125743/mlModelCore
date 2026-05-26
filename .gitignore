@@ -1,1 +1,13 @@
 runs/
+seacrets/
+cocoImages/
+annotations/
+**/*.jpg
+*.zip
+*.json
+.ipynb_checkpoints/
+gcloudCommand.txt
+
+# security notes (must never be committed — see ../SECURITY-NOTES.md)
+SECURITY-NOTES.md
+**/SECURITY-NOTES.md

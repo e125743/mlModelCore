@@ -1,0 +1,10 @@
+runs/
+seacrets/
+cocoImages/
+annotations/
+**/*.jpg
+*.zip
+*.json
+*.ipynb
+dockerTest.py
+gcloudCommand.txt
