@@ -3,7 +3,7 @@
 ## このファイルの責任範囲
 
 Cloud Run で動作する Python 物体検出サーバ (`main.py`, `Dockerfile`)、および周辺の GCP 設定 (Eventarc / Artifact Registry / Secret Manager) に関する事項を扱います。
-横断的なルール (本番直結 / Git ワークフロー / CLAUDE.md 更新ルール / アーキテクチャ全体) は `../CLAUDE.md` を、フロントエンド・Functions の詳細は `../takumi-craft-works/CLAUDE.md` を参照してください。
+横断的なルール (本番直結 / Git ワークフロー / CLAUDE.md 更新ルール / アーキテクチャ全体) は `../CLAUDE.md` を (Git 手順の詳細は `../docs/GIT-WORKFLOW.md`)、フロントエンド・Functions の詳細は `../takumi-craft-works/CLAUDE.md` を参照してください。
 
 ---
 
@@ -128,4 +128,4 @@ Storage オブジェクトの確認は **GCP コンソール**から行うのが
 - Eventarc トリガーは Storage バケット単位。バケット名を変更する場合は `gcloudCommand.txt` の手順8 を参照して再作成
 - Cloud Run の memory / timeout / max-instances などのリソース設定は `gcloud run deploy` のフラグで指定 (`gcloudCommand.txt` 手順6 参照)
 
-→ 改修後の commit / デプロイ / push / merge は `../CLAUDE.md` の **Git ワークフロー** に従って進めます。
+→ 改修後は `../CLAUDE.md` の **Git ワークフロー（要点）** と詳細手順 `../docs/GIT-WORKFLOW.md` に従って進めます: commit → build (`gcloud builds submit`) → デプロイ (`gcloud run deploy`) → push → merge。
