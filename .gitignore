@@ -8,6 +8,11 @@ annotations/
 .ipynb_checkpoints/
 gcloudCommand.txt
 
+__pycache__/
+*.pyc
+.venv/
+.env
+
 # security notes (must never be committed — see ../SECURITY-NOTES.md)
 SECURITY-NOTES.md
 **/SECURITY-NOTES.md
