@@ -50,6 +50,8 @@ def handle_event():
         bucket = storage.bucket()
         
         blob = bucket.blob(f'{down_fol}/{file_name}')
+        blob.reload()                                                   # オブジェクトのメタデータを取得
+        download_token = (blob.metadata or {}).get('firebaseStorageDownloadTokens')
         blob.download_to_filename(f'./{down_fol}/{file_name}')
         
         results = model(f'./{down_fol}/{file_name}',save=True)
@@ -75,6 +77,8 @@ def handle_event():
         
         
         out_blob = bucket.blob(f'{up_fol}/{file_name}')
+        if download_token:
+            out_blob.metadata = {'firebaseStorageDownloadTokens': download_token}  # origine と同じ固定トークンを付与
         out_blob.upload_from_filename(f'./{up_fol}/{file_name}')
         
         outJson_blob = bucket.blob(f'{up_fol}/{file_}.json')
