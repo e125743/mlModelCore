@@ -3,7 +3,9 @@
 ## このファイルの責任範囲
 
 Cloud Run で動作する Python 物体検出サーバ (`main.py`, `Dockerfile`)、および周辺の GCP 設定 (Eventarc / Artifact Registry / Secret Manager) に関する事項を扱います。
-横断的なルール (本番直結 / Git ワークフロー / CLAUDE.md 更新ルール / アーキテクチャ全体) は `../CLAUDE.md` を (Git 手順の詳細は `../docs/GIT-WORKFLOW.md`)、フロントエンド・Functions の詳細は `../takumi-craft-works/CLAUDE.md` を参照してください。
+横断的なルール (本番直結 / Git ワークフロー / CLAUDE.md 更新ルール / アーキテクチャ全体) は `../docs/CLAUDE.md` を (Git 手順の詳細は `../docs/GIT-WORKFLOW.md`)、フロントエンド・Functions の詳細は `../takumi-craft-works/CLAUDE.md` を参照してください。
+
+> ℹ️ **横断ルールの読み込み（Claude 向け）**: `mlModelCore` をルートで開いた場合のみ、横断ルール本体 `../docs/CLAUDE.md`（Git 管理外）を読む。`my-portfolio` をルートで開いている時はルートスタブ `my-portfolio/CLAUDE.md` 経由で起動時から常駐済みなので読まなくてよい（単体 clone で `../docs/` が無い場合も読めなくて問題ない）。
 
 ---
 
@@ -49,11 +51,11 @@ Storage プレフィックスは `takumi-craft-works/functions/index.js` でも�
 
 ## ⚠️ セキュリティ既知事項
 
-このリポジトリは Public のため、**現状のセキュリティ課題・攻撃面・対策案は CLAUDE.md には記載しません**。すべて Git 管理外の `../SECURITY-NOTES.md` に集約しています。
+このリポジトリは Public のため、**現状のセキュリティ課題・攻撃面・対策案は CLAUDE.md には記載しません**。すべて Git 管理外の `../docs/SECURITY-NOTES.md` に集約しています。
 
-- Claude は改修着手前に `../SECURITY-NOTES.md` を読み、書かれた「Claude が改修する際の最低ライン」を必ず遵守
-- セキュリティ課題を新たに発見した場合、CLAUDE.md ではなく **`../SECURITY-NOTES.md` に追記** (このファイルは Public リポジトリにコミットされるため攻撃情報を書かない)
-- 課題が解消した時も `../SECURITY-NOTES.md` の「🟢 解消済み」セクションに移動
+- Claude は改修着手前に `../docs/SECURITY-NOTES.md` を読み、書かれた「Claude が改修する際の最低ライン」を必ず遵守
+- セキュリティ課題を新たに発見した場合、CLAUDE.md ではなく **`../docs/SECURITY-NOTES.md` に追記** (このファイルは Public リポジトリにコミットされるため攻撃情報を書かない)
+- 課題が解消した時も `../docs/SECURITY-NOTES.md` の「🟢 解消済み」セクションに移動
 
 ---
 
@@ -128,4 +130,4 @@ Storage オブジェクトの確認は **GCP コンソール**から行うのが
 - Eventarc トリガーは Storage バケット単位。バケット名を変更する場合は `gcloudCommand.txt` の手順8 を参照して再作成
 - Cloud Run の memory / timeout / max-instances などのリソース設定は `gcloud run deploy` のフラグで指定 (`gcloudCommand.txt` 手順6 参照)
 
-→ 改修後は `../CLAUDE.md` の **Git ワークフロー（要点）** と詳細手順 `../docs/GIT-WORKFLOW.md` に従って進めます: commit → build (`gcloud builds submit`) → デプロイ (`gcloud run deploy`) → push → merge。
+→ 改修後は `../docs/CLAUDE.md` の **Git ワークフロー（要点）** と詳細手順 `../docs/GIT-WORKFLOW.md` に従って進めます: commit → build (`gcloud builds submit`) → デプロイ (`gcloud run deploy`) → push → merge。
